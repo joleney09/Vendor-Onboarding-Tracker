@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vendor Onboarding Tracker</title>
+  <style>
+    :root {
+      --brand: #1a56db;
+      --brand-light: #e8effd;
+      --danger: #dc2626;
+      --danger-light: #fef2f2;
+      --warn: #d97706;
+      --warn-light: #fffbeb;
+      --ok: #16a34a;
+      --ok-light: #f0fdf4;
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --bg: #f3f4f6;
+      --shadow: 0 1px 3px rgba(0,0,0,.1);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+    /* TOPBAR */
+    .topbar {
+      background: white; border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow);
+    }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar-icon { width: 32px; height: 32px; background: var(--brand); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .topbar h1 { font-size: 1rem; font-weight: 700; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+
+    /* BUTTONS */
+    .btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 7px; padding: .5rem 1rem; font-size: .85rem; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+    .btn-primary { background: var(--brand); color: white; }
+    .btn-primary:hover { background: #1648c4; }
+    .btn-outline { background: white; color: var(--text); border: 1.5px solid var(--border); }
+    .btn-outline:hover { border-color: var(--brand); color: var(--brand); }
+    .btn-sm { padding: .35rem .75rem; font-size: .78rem; }
+    .btn-danger { background: var(--danger-light); color: var(--danger); }
+    .btn-danger:hover { background: #fecaca; }
+
+    /* MAIN */
+    .main { padding: 1.25rem 1.5rem; max-width: 1400px; margin: 0 auto; }
+
+    /* STATS */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .85rem; margin-bottom: 1.25rem; }
+    .stat { background: white; border-radius: 10px; padding: 1rem 1.25rem; box-shadow: var(--shadow); }
+    .stat-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .3rem; }
+    .stat-value { font-size: 1.9rem; font-weight: 800; line-height: 1; }
+    .stat-sub { font-size: .72rem; color: var(--muted); margin-top: .2rem; }
+    .stat-danger .stat-value { color: var(--danger); }
+    .stat-warn .stat-value { color: var(--warn); }
+    .stat-ok .stat-value { color: var(--ok); }
+
+    /* TOOLBAR */
+    .toolbar { background: white; border-radius: 10px; padding: .85rem 1rem; display: flex; gap: .6rem; align-items: center; margin-bottom: 1rem; box-shadow: var(--shadow); flex-wrap: wrap; }
+    .search-wrap { position: relative; flex: 1; min-width: 180px; }
+    .search-wrap input { width: 100%; border: 1.5px solid var(--border); border-radius: 7px; padding: .5rem .75rem .5rem 2rem; font-size: .85rem; outline: none; }
+    .search-wrap input:focus { border-color: var(--brand); }
+    .search-icon { position: absolute; left: .6rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: .8rem; }
+    select.filter { border: 1.5px solid var(--border); border-radius: 7px; padding: .5rem .75rem; font-size: .85rem; background: white; outline: none; cursor: pointer; }
+    select.filter:focus { border-color: var(--brand); }
+
+    /* TABLE */
+    .table-wrap { background: white; border-radius: 10px; box-shadow: var(--shadow); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    thead { background: #f9fafb; }
+    th { text-align: left; padding: .7rem 1rem; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: .75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #fafafa; }
+    .vendor-name { font-weight: 600; }
+
+    /* BADGES */
+    .badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 20px; padding: 2px 9px; font-size: .72rem; font-weight: 600; white-space: nowrap; }
+    .badge-ok { background: var(--ok-light); color: var(--ok); }
+    .badge-missing { background: #f3f4f6; color: var(--muted); }
+    .badge-danger { background: var(--danger-light); color: var(--danger); }
+    .badge-warn { background: var(--warn-light); color: var(--warn); }
+
+    /* EMPTY / LOADING */
+    .empty { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+    .empty .icon { font-size: 2.5rem; margin-bottom: .75rem; }
+    .empty h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: .4rem; }
+    .spinner-wrap { text-align: center; padding: 4rem; }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 1rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* MODAL */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .modal { background: white; border-radius: 14px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; transform: scale(.96); transition: transform .2s; box-shadow: var(--shadow-lg); }
+    .overlay.open .modal { transform: scale(1); }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: white; border-radius: 14px 14px 0 0; }
+    .modal-head h2 { font-size: 1rem; font-weight: 700; }
+    .modal-close { width: 28px; height: 28px; border: none; background: #f3f4f6; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+    .modal-close:hover { background: var(--border); }
+    .modal-body { padding: 1.25rem 1.4rem; }
+    .modal-foot { padding: .9rem 1.4rem; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; position: sticky; bottom: 0; background: white; border-radius: 0 0 14px 14px; }
+
+    /* FORM */
+    .section-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 1.1rem 0 .6rem; }
+    .section-label:first-child { margin-top: 0; }
+    .form-group { margin-bottom: .8rem; }
+    .form-group label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: .3rem; }
+    .form-group input[type=text], .form-group input[type=date], .form-group textarea {
+      width: 100%; border: 1.5px solid var(--border); border-radius: 7px;
+      padding: .5rem .75rem; font-size: .875rem; outline: none; font-family: inherit;
+    }
+    .form-group input:focus, .form-group textarea:focus { border-color: var(--brand); }
+    .form-group textarea { resize: vertical; min-height: 60px; }
+    .check-row { display: flex; align-items: center; gap: 8px; padding: .55rem .75rem; border: 1.5px solid var(--border); border-radius: 7px; cursor: pointer; }
+    .check-row input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--brand); cursor: pointer; }
+    .check-row label { font-size: .875rem; font-weight: 500; cursor: pointer; }
+    .name-banner { background: #fef9c3; border: 1px solid #fde047; border-radius: 7px; padding: .65rem .85rem; font-size: .8rem; color: #854d0e; margin-bottom: 1rem; }
+
+    /* CONFIRM */
+    .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 1rem; }
+    .confirm-overlay.open { display: flex; }
+    .confirm-card { background: white; border-radius: 12px; padding: 1.5rem; max-width: 360px; width: 100%; box-shadow: var(--shadow-lg); }
+    .confirm-card h3 { font-size: .95rem; font-weight: 700; margin-bottom: .4rem; }
+    .confirm-card p { font-size: .85rem; color: var(--muted); margin-bottom: 1.1rem; }
+    .confirm-btns { display: flex; gap: 8px; justify-content: flex-end; }
+    .btn-confirm-del { background: var(--danger); color: white; border: none; border-radius: 7px; padding: .55rem 1.1rem; font-size: .85rem; font-weight: 600; cursor: pointer; }
+    .btn-confirm-del:hover { background: #b91c1c; }
+
+    /* TOAST */
+    .toasts { position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 9999; display: flex; flex-direction: column; gap: 7px; }
+    .toast { background: #111827; color: white; border-radius: 9px; padding: .65rem 1.1rem; font-size: .85rem; font-weight: 500; box-shadow: var(--shadow-lg); animation: slideUp .25s ease; max-width: 300px; }
+    .toast-ok { background: var(--ok); }
+    .toast-err { background: var(--danger); }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    @media (max-width: 700px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+      .main { padding: 1rem; }
+      .table-wrap { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-icon">📋</div>
+    <h1>Vendor Onboarding Tracker</h1>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="btn btn-outline btn-sm" onclick="loadData()">↺ Refresh</button>
+    <button class="btn btn-primary btn-sm" onclick="openAdd()">+ Add Vendor</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="stats" id="stats">
+    <div class="stat"><div class="stat-label">Total Vendors</div><div class="stat-value" id="s-total">—</div></div>
+    <div class="stat stat-ok"><div class="stat-label">Fully Onboarded</div><div class="stat-value" id="s-done">—</div><div class="stat-sub">All docs received</div></div>
+    <div class="stat stat-warn"><div class="stat-label">COI Expiring Soon</div><div class="stat-value" id="s-soon">—</div><div class="stat-sub">Within 60 days</div></div>
+    <div class="stat stat-danger"><div class="stat-label">COI Expired</div><div class="stat-value" id="s-exp">—</div><div class="stat-sub">Action required</div></div>
+    <div class="stat"><div class="stat-label">Missing Docs</div><div class="stat-value" id="s-miss">—</div><div class="stat-sub">Incomplete</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search" placeholder="Search vendors…" oninput="render()" />
+    </div>
+    <select class="filter" id="filter" onchange="render()">
+      <option value="">All vendors</option>
+      <option value="complete">Fully onboarded</option>
+      <option value="incomplete">Missing docs</option>
+      <option value="expired">COI Expired</option>
+      <option value="expiring">COI Expiring Soon</option>
+    </select>
+  </div>
+
+  <div class="table-wrap">
+    <div id="loading" class="spinner-wrap"><div class="spinner"></div><p style="color:var(--muted);font-size:.85rem">Loading…</p></div>
+    <div id="empty" class="empty" style="display:none"><div class="icon">📭</div><h3>No vendors found</h3><p>Try adjusting your search or add a vendor.</p></div>
+    <table id="tbl" style="display:none">
+      <thead><tr>
+        <th>Vendor Name</th>
+        <th>COI</th>
+        <th>COI Expiration</th>
+        <th>W-9</th>
+        <th>Contract</th>
+        <th>Notes</th>
+        <th>Files</th>
+        <th>Last Edited</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modal-title">Add Vendor</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="name-banner" id="name-banner">✏️ Please enter your name — it will be logged with this change.</div>
+      <div class="form-group">
+        <label>Your Name <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="f-editor" placeholder="Enter your name…" />
+      </div>
+
+      <div class="section-label">Vendor Info</div>
+      <div class="form-group">
+        <label>Vendor / Company Name <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="f-name" placeholder="e.g. Acme Corp" />
+      </div>
+
+      <div class="section-label">Certificate of Insurance (COI)</div>
+      <div class="form-group">
+        <div class="check-row" onclick="tog('f-coi')">
+          <input type="checkbox" id="f-coi" /><label for="f-coi">COI Received</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>COI Expiration Date</label>
+        <input type="date" id="f-coi-exp" />
+      </div>
+      <div class="form-group">
+        <label>COI File Link <span style="color:var(--muted);font-weight:400">(Dropbox, Drive, etc.)</span></label>
+        <input type="text" id="f-coi-link" placeholder="https://…" />
+      </div>
+
+      <div class="section-label">W-9 / Tax Form</div>
+      <div class="form-group">
+        <div class="check-row" onclick="tog('f-w9')">
+          <input type="checkbox" id="f-w9" /><label for="f-w9">W-9 Received</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>W-9 Date Received</label>
+        <input type="date" id="f-w9-date" />
+      </div>
+      <div class="form-group">
+        <label>W-9 File Link <span style="color:var(--muted);font-weight:400">(Dropbox, Drive, etc.)</span></label>
+        <input type="text" id="f-w9-link" placeholder="https://…" />
+      </div>
+
+      <div class="section-label">Contract / Agreement</div>
+      <div class="form-group">
+        <div class="check-row" onclick="tog('f-contract')">
+          <input type="checkbox" id="f-contract" /><label for="f-contract">Contract Received</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Contract Date Received</label>
+        <input type="date" id="f-contract-date" />
+      </div>
+      <div class="form-group">
+        <label>Contract File Link <span style="color:var(--muted);font-weight:400">(Dropbox, Drive, etc.)</span></label>
+        <input type="text" id="f-contract-link" placeholder="https://…" />
+      </div>
+
+      <div class="section-label">Notes</div>
+      <div class="form-group">
+        <textarea id="f-notes" placeholder="Any additional notes…"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="save-btn" onclick="save()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-card">
+    <h3>Delete Vendor?</h3>
+    <p>This will permanently remove this vendor from the tracker. This cannot be undone.</p>
+    <div class="confirm-btns">
+      <button class="btn btn-outline btn-sm" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-confirm-del" id="confirm-del-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+  // ── CONFIG (baked in) ──────────────────────────────────────
+  const TOKEN    = 'patcgDP8z3Z1zHyMO.26509191f5dfddee843e0e45324cfd7a0052245caaea3e40f6a02490accff735';
+  const BASE_ID  = 'appCIROoY1b6cO3AO';
+  const TABLE    = 'Vendors';
+  const API      = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE)}`;
+  const HEADERS  = { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
+
+  // ── UTILS ─────────────────────────────────────────────────
+  const id  = x => document.getElementById(x);
+  const set = (x, v) => id(x).textContent = v;
+  const show = x => id(x).style.display = '';
+  const hide = x => id(x).style.display = 'none';
+  const esc  = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const day  = d => d.toISOString().slice(0,10);
+  const fmtDate = s => { const [y,m,d] = s.split('-'); return `${m}/${d}/${y}`; };
+
+  // ── STATE ──────────────────────────────────────────────────
+  let records   = [];
+  let editId    = null;   // null = new record
+  let editorName = localStorage.getItem('ot_name') || '';
+
+  // ── INIT ───────────────────────────────────────────────────
+  loadData();
+
+  async function loadData() {
+    show('loading'); hide('tbl'); hide('empty');
+    try {
+      let all = [], offset;
+      do {
+        const url = API + '?pageSize=100' + (offset ? '&offset=' + offset : '');
+        const r   = await fetch(url, { headers: HEADERS });
+        if (!r.ok) throw new Error(await r.text());
+        const d   = await r.json();
+        all = all.concat(d.records || []);
+        offset = d.offset;
+      } while (offset);
+      records = all;
+      updateStats();
+      render();
+    } catch(e) {
+      toast('Failed to load data. Check connection.', 'err');
+      hide('loading');
+    }
+  }
+
+  // ── STATS ─────────────────────────────────────────────────
+  function updateStats() {
+    const today = day(new Date());
+    const in60  = day(new Date(Date.now() + 60*86400000));
+    let done=0, soon=0, expired=0, miss=0;
+    records.forEach(r => {
+      const f = r.fields;
+      const exp = f['COI Expiration Date'];
+      if (f['COI Received'] && f['W9 Received'] && f['Contract Received']) done++;
+      if (!f['COI Received'] || !f['W9 Received'] || !f['Contract Received']) miss++;
+      if (exp) {
+        if (exp < today) expired++;
+        else if (exp <= in60) soon++;
+      }
+    });
+    set('s-total', records.length);
+    set('s-done',  done);
+    set('s-soon',  soon);
+    set('s-exp',   expired);
+    set('s-miss',  miss);
+  }
+
+  // ── RENDER TABLE ──────────────────────────────────────────
+  function render() {
+    const q   = id('search').value.toLowerCase();
+    const fil = id('filter').value;
+    const today = day(new Date());
+    const in60  = day(new Date(Date.now() + 60*86400000));
+
+    const rows = records.filter(r => {
+      const f = r.fields;
+      if (q && !(f['Vendor Name']||'').toLowerCase().includes(q)) return false;
+      const exp = f['COI Expiration Date'];
+      if (fil === 'complete')   return f['COI Received'] && f['W9 Received'] && f['Contract Received'];
+      if (fil === 'incomplete') return !f['COI Received'] || !f['W9 Received'] || !f['Contract Received'];
+      if (fil === 'expired')    return exp && exp < today;
+      if (fil === 'expiring')   return exp && exp >= today && exp <= in60;
+      return true;
+    });
+
+    hide('loading');
+    if (!rows.length) { hide('tbl'); show('empty'); return; }
+    show('tbl'); hide('empty');
+
+    id('tbody').innerHTML = rows.map(r => {
+      const f   = r.fields;
+      const exp = f['COI Expiration Date'];
+      const coiBadge  = coiStatus(f['COI Received'], exp, today, in60);
+      const expLabel  = exp ? fmtDate(exp) : '—';
+      let expStyle = '';
+      if (exp) {
+        if (exp < today) expStyle = 'style="color:var(--danger);font-weight:700"';
+        else if (exp <= in60) expStyle = 'style="color:var(--warn);font-weight:700"';
+      }
+      const w9Badge  = docBadge(f['W9 Received']);
+      const ctBadge  = docBadge(f['Contract Received']);
+      const edited   = f['Last Edited By']
+        ? `<div style="font-size:.75rem">${esc(f['Last Edited By'])}</div><div style="font-size:.7rem;color:var(--muted)">${esc(f['Last Edited Date']||'')}</div>`
+        : '<span style="color:var(--muted)">—</span>';
+      return `<tr>
+        <td><div class="vendor-name">${esc(f['Vendor Name']||'(unnamed)')}</div></td>
+        <td>${coiBadge}</td>
+        <td><span ${expStyle}>${expLabel}</span></td>
+        <td>${w9Badge}</td>
+        <td>${ctBadge}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem;color:var(--muted)">${esc(f['Notes']||'')}</td>
+        <td style="white-space:nowrap">${fileLinks(f)}</td>
+        <td>${edited}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-outline btn-sm" onclick="openEdit('${r.id}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="askDelete('${r.id}')" style="margin-left:4px">Delete</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function coiStatus(received, exp, today, in60) {
+    if (!received) return `<span class="badge badge-missing">✗ Not Received</span>`;
+    if (!exp)      return `<span class="badge badge-ok">✔ Received</span>`;
+    if (exp < today)  return `<span class="badge badge-danger">⚠ Expired</span>`;
+    if (exp <= in60)  return `<span class="badge badge-warn">⏰ Expiring Soon</span>`;
+    return `<span class="badge badge-ok">✔ Active</span>`;
+  }
+  function docBadge(received) {
+    return received
+      ? `<span class="badge badge-ok">✔ Received</span>`
+      : `<span class="badge badge-missing">✗ Missing</span>`;
+  }
+  function fileLinks(f) {
+    const links = [
+      { label: 'COI', url: f['COI Link'] },
+      { label: 'W-9', url: f['W9 Link'] },
+      { label: 'Contract', url: f['Contract Link'] },
+    ].filter(l => l.url);
+    if (!links.length) return '<span style="color:var(--muted);font-size:.75rem">—</span>';
+    return links.map(l =>
+      `<a href="${esc(l.url)}" target="_blank" rel="noopener"
+        style="display:inline-flex;align-items:center;gap:3px;font-size:.75rem;font-weight:600;
+               color:var(--brand);text-decoration:none;background:var(--brand-light);
+               border-radius:5px;padding:2px 7px;margin-right:3px;"
+        title="${esc(l.url)}">🔗 ${l.label}</a>`
+    ).join('');
+  }
+
+  // ── MODAL ─────────────────────────────────────────────────
+  function openAdd() {
+    editId = null;
+    id('modal-title').textContent = 'Add Vendor';
+    clearForm();
+    id('f-editor').value = editorName;
+    showOverlay();
+  }
+  function openEdit(rid) {
+    editId = rid;
+    const r = records.find(x => x.id === rid);
+    if (!r) return;
+    id('modal-title').textContent = 'Edit Vendor';
+    clearForm();
+    const f = r.fields;
+    id('f-editor').value       = editorName;
+    id('f-name').value         = f['Vendor Name'] || '';
+    id('f-coi').checked        = !!f['COI Received'];
+    id('f-coi-exp').value      = f['COI Expiration Date'] || '';
+    id('f-w9').checked         = !!f['W9 Received'];
+    id('f-w9-date').value      = f['W9 Date Received'] || '';
+    id('f-contract').checked    = !!f['Contract Received'];
+    id('f-contract-date').value = f['Contract Date Received'] || '';
+    id('f-coi-link').value      = f['COI Link'] || '';
+    id('f-w9-link').value       = f['W9 Link'] || '';
+    id('f-contract-link').value = f['Contract Link'] || '';
+    id('f-notes').value         = f['Notes'] || '';
+    showOverlay();
+  }
+  function showOverlay() {
+    id('name-banner').style.display = editorName ? 'none' : 'block';
+    id('modal-overlay').classList.add('open');
+  }
+  function closeModal() { id('modal-overlay').classList.remove('open'); }
+  function clearForm() {
+    ['f-name','f-coi-exp','f-coi-link','f-w9-date','f-w9-link','f-contract-date','f-contract-link','f-notes'].forEach(x => id(x).value = '');
+    ['f-coi','f-w9','f-contract'].forEach(x => id(x).checked = false);
+  }
+  function tog(fid) { id(fid).checked = !id(fid).checked; }
+
+  async function save() {
+    const editor = id('f-editor').value.trim();
+    const name   = id('f-name').value.trim();
+    if (!editor) { toast('Please enter your name.', 'err'); id('f-editor').focus(); return; }
+    if (!name)   { toast('Vendor name is required.', 'err'); id('f-name').focus(); return; }
+
+    editorName = editor;
+    localStorage.setItem('ot_name', editor);
+
+    const now = new Date().toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    const fields = {
+      'Vendor Name':    name,
+      'COI Received':   id('f-coi').checked,
+      'W9 Received':    id('f-w9').checked,
+      'Contract Received': id('f-contract').checked,
+      'Notes':          id('f-notes').value.trim(),
+      'Last Edited By': editor,
+      'Last Edited Date': now,
+    };
+    const coiExp     = id('f-coi-exp').value;
+    const w9Date     = id('f-w9-date').value;
+    const ctDate     = id('f-contract-date').value;
+    const coiLink    = id('f-coi-link').value.trim();
+    const w9Link     = id('f-w9-link').value.trim();
+    const ctLink     = id('f-contract-link').value.trim();
+    if (coiExp)  fields['COI Expiration Date']   = coiExp;
+    if (w9Date)  fields['W9 Date Received']       = w9Date;
+    if (ctDate)  fields['Contract Date Received'] = ctDate;
+    fields['COI Link']      = coiLink || null;
+    fields['W9 Link']       = w9Link  || null;
+    fields['Contract Link'] = ctLink  || null;
+
+    const btn = id('save-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    try {
+      const url    = editId ? `${API}/${editId}` : API;
+      const method = editId ? 'PATCH' : 'POST';
+      const res    = await fetch(url, { method, headers: HEADERS, body: JSON.stringify({ fields }) });
+      if (!res.ok) throw new Error(await res.text());
+      closeModal();
+      toast(editId ? 'Vendor updated!' : 'Vendor added!', 'ok');
+      await loadData();
+    } catch(e) {
+      toast('Save failed — try again.', 'err');
+    }
+    btn.disabled = false; btn.textContent = 'Save';
+  }
+
+  // ── DELETE ────────────────────────────────────────────────
+  let pendingDel = null;
+  function askDelete(rid) {
+    pendingDel = rid;
+    id('confirm-overlay').classList.add('open');
+    id('confirm-del-btn').onclick = doDelete;
+  }
+  function closeConfirm() { id('confirm-overlay').classList.remove('open'); pendingDel = null; }
+  async function doDelete() {
+    closeConfirm();
+    try {
+      const res = await fetch(`${API}/${pendingDel}`, { method: 'DELETE', headers: HEADERS });
+      if (!res.ok) throw new Error();
+      toast('Vendor deleted.', 'ok');
+      await loadData();
+    } catch { toast('Delete failed.', 'err'); }
+  }
+
+  // ── EXPORT CSV ────────────────────────────────────────────
+  function exportCSV() {
+    if (!records.length) { toast('No data to export.'); return; }
+    const cols = ['Vendor Name','COI Received','COI Expiration Date','COI Link','W9 Received','W9 Date Received','W9 Link','Contract Received','Contract Date Received','Contract Link','Notes','Last Edited By','Last Edited Date'];
+    const rows = [cols.join(',')];
+    records.forEach(r => {
+      rows.push(cols.map(c => {
+        const v = r.fields[c];
+        if (v === true) return 'Yes';
+        if (v === false || v === undefined || v === null) return '';
+        return `"${String(v).replace(/"/g,'""')}"`;
+      }).join(','));
+    });
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `vendor-onboarding-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    toast('CSV exported!', 'ok');
+  }
+
+  // ── TOAST ─────────────────────────────────────────────────
+  function toast(msg, type='') {
+    const el = document.createElement('div');
+    el.className = `toast${type ? ' toast-'+type : ''}`;
+    el.textContent = msg;
+    id('toasts').appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+
+  // Close modal on backdrop click
+  id('modal-overlay').addEventListener('click', e => { if (e.target === id('modal-overlay')) closeModal(); });
+</script>
+</body>
+</html>
